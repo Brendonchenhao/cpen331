@@ -2,4 +2,6 @@
 *.log
 *.mk
 cs161-ubuntu-darwin.sh
-
+*.o
+os161/src/kern/compile/*
+os161/src/build/

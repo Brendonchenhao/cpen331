@@ -1,0 +1,144 @@
+# Assignment 0
+
+### sys161
+
+```
+sys161: System/161 release 2.0.3, compiled Jan  4 2017 15:55:00
+
+OS/161 base system version 1.99.08
+Copyright (c) 2000, 2001-2005, 2008-2011, 2013, 2014
+   President and Fellows of Harvard College.  All rights reserved.
+
+Put-your-group-name-here's system version 0 (DUMBVM #1)
+
+292k physical memory available
+Device probe...
+lamebus0 (system main bus)
+emu0 at lamebus0
+ltrace0 at lamebus0
+ltimer0 at lamebus0
+beep0 at ltimer0
+rtclock0 at ltimer0
+lrandom0 at lamebus0
+random0 at lrandom0
+lhd0 at lamebus0
+lhd1 at lamebus0
+lser0 at lamebus0
+con0 at lser0
+
+cpu0: MIPS/161 (System/161 2.x) features 0x0
+OS/161 kernel [? for menu]: 
+```
+
+### git log 
+
+```
+commit 9783ac196953775b444abeda62a4928e4cddab40
+Author: erik <erik@dolins.ky>
+Date:   Fri Jan 6 17:16:15 2017 -0800
+
+    updated gitignore
+
+commit 2d9bef66fce867592c08b477c1149eeb8a1e18dc
+Author: erik <erik@dolins.ky>
+Date:   Wed Jan 4 22:08:49 2017 -0800
+
+    added gitignore
+
+commit 6224b799d477ea6528e4f822d4802030f21b0020
+Author: erik <erik@dolins.ky>
+Date:   Tue Jan 3 21:49:20 2017 -0800
+
+    created readme
+
+commit f80ce180454ceecf92dc60b5c1af011b9db90e24
+Author: erik <erik@dolins.ky>
+Date:   Tue Jan 3 21:47:09 2017 -0800
+
+    Initial commit of os161 for CPEN331
+```
+
+### git tag
+
+```
+asst0-start
+```
+
+### Reading Exercises
+
+1. Depending on the nature of the exception, the first line executed when a trap occurs is either the first line of
+`mips_general_handler` (line 87) or `mips_utlb_handler` (line 69) in `kern/arch/mips/locore/exception-mips1.S`.
+`mips_utlb_handler` is "the special entry point for the fast-path TLB refill for faults in the user address space",
+which is as yet not implemented. Due to this, both handle control off to `common_exception` immediately.
+`common_exception` prepares the trap frame, and calls `mips_trap()` in `kern/arch/mips/locore/trap.c`. `mips_trap()`
+then handles the trap according to the type of trap, and in some cases whether we are in user or kernel mode.
+As an interrupt is a type of trap, in the case of an interrupt the process is the same up until the execution of
+`mips_trap()`, in which we check whether interrupts have been enabled by the processor. If interrupts have just been
+disabled, we adjust the recorded state of interrupts to match (spl 1), and restore after processing the interrupt. If
+interrupts were originally disabled, we simply restore the interrupt state without processing.
+
+2. The code in OS/161 that invokes system calls from user programs and causes traps is located in
+`userland/lib/libc/arch/mips/syscalls-mips.S`, but is "copied to syscalls.S, and then the actual syscalls are appended
+as lines of the form SYSCALL(symbol, number)". That function, SYSCALL(sym, num) on line 49 of `syscalls-mips.S` is the
+overarching function, which loads the call number into v0 and jumps to the the shared `syscall` function (line 83),
+which generates the trap.
+
+3. `userland/lib/libc` contains executable files that the user can execute, while executable files in `common/libc` are
+shared by the user and kernel, and therefore must operate in both contexts. This separation allows us to avoid problems
+which would originate from having duplicate code bases.
+
+4. `configure` configures environment-specific makefile definitions, including the operating system tree and
+compatibility flags. This would need to be re-run if the source tree was moved to a different computer, possibly running
+a different operating system.
+
+5. Some details that could make a function machine dependent are:
+    * endianness
+    * definition of general purpose registers
+    * definition of variable type widths (int, long, char, size_t, etc.)
+    * co-processor details (special registers for interfacing with, behaviour for offloading to)
+    * dealing with machine-dependent thread bits
+    * if said function needs to manage physical memory addresses
+    * trap and fault handling
+In essence, any function that is required to operate so close to hardware that we cannot rely on abstraction.
+Some of these details can be found in the `kern/arch/mips/include` directory. Maintaining this separation allows for
+modularity; different systems may have combinations of these details, and we can use combinations of files to operate
+with each system, instead of needing to create a single master file for each system (which would result in many more files).
+
+6. A trap frame is 37 words; one word for each uint32_t in the trapframe struct (31 MIPS registers, 4 co-processor
+registers, $lo, and $hi) located in `kern/arch/mips/include/trapframe.h`. The entire trap frame must be stored on the
+stack during entry to the exception handler.
+
+7. The `kern/conf/config` script should be re-run after adding new build options or source files, or changing the kernel
+config.
+
+8. `bmake depend` shoud be re-run in `kern/compile/DUMBVM` after re-running `config`, or after changing header file
+inclusions.
+
+9. `bmake` or `bmake install` should be run in `kern/compile/DUMBVM` after the above two steps, so that the changes in
+source files, header files, build options, configurations that have been made are compiled (`bmake`) and copied to the
+correct place (`bmake install`) within the `os161/root` directory. Afterwards, one should be able to run `sys161 DUMBVM`
+with the new kernel changes.
+
+10. To add a "hello world" command, I would implement the function
+`static int cmd_hello(int nargs, char **args)` in `kern/main/menu.c`, and add the appropriate alias entry in the
+`cmdtable` struct in the form `{ "hello",    cmd_hello }`.
+
+11. The standard utilities on the machine on which I'm working have already been compiled for the specific x86_64
+architecture of my machine. OS161 runs on SYS161, which in turn runs on my machine. SYS161 simulates MIPS, and so
+doesn't have access to the standard utilities on my machine.
+
+12. When a user program exits, the C Runtime function in `userland/lib/crt0/mips/crt0.S` saves the return value in s0
+(from return register v0) so that the return value is retained in case `exit()` returns. It is also saved in the delay
+slot, a0.
+
+13.
+Implementing the system call:
+    * Add a new file `newcall.c` to the `kern/syscall` directory, containing our new function `sys___newcall(...)`
+    * In `kern/arch/mips/syscall/syscall.c`, under line 112 (`/* Add stuff here */`), add a new case statement
+    `SYS___newcall:` and handle the case (store return value in `err`) within the switch block
+    * In `kern/include/kern/syscall.h`, add the call number for our new syscall
+    * In `kern/include/syscall.h`, add the function prototype `sys___newcall(...);` at line 61
+Build and install:
+    * _ONLY_ if we have changed header file inclusions in the new file `newcall.c`, or modified files above, run `bmake depend` (Q8)
+    * run `bmake` to compile the new version of the kernel (Q9)
+    * run `bmake install` to copy the new version over to `os161/root`, in which we can boot the new version. (Q9)

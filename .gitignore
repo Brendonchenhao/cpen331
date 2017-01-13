@@ -1,19 +1,21 @@
+# Ignore all
+*
+
+# Unignore all with extensions
+!*.*
+
+# Unignore all dirs
+!*/
+
+### Above combination will ignore all files without extension ###
+
+# Ignore these files
 *.tar.gz
 *.log
 *.mk
-cs161-ubuntu-darwin.sh
 *.o
 CMakeLists.txt
 
-os161/src/kern/compile/*
-os161/src/build/
-os161/bin/
-os161/include/
-os161/lib/
-os161/libexec/
-os161/mips-harvard-os161/
-os161/root/
-os161/share/
-os161/src/.idea/
-sys161/
+# Ignore these directories
+.idea/
 

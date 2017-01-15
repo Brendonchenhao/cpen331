@@ -1,0 +1,153 @@
+# Assignment 1
+
+Upon startup with `gdb` running:
+
+```
+Remote debugging using unix:.sockets/gdb
+__start () at ../../arch/sys161/main/start.S:54
+54	   addiu sp, sp, -24
+```
+
+### Question 1
+
+The very first function that executes when OS161 starts up is `__start()` in `start.S`, as above.
+
+### Question 2
+
+The very first assembly instruction that executes is
+
+```
+addiu sp, sp, -24
+```
+
+at line 54 in `start.S`, as seen above.
+
+### Question 3
+
+```
+(gdb) info breakpoints
+Num     Type           Disp Enb Address    What
+1       breakpoint     keep y   0x800139e4 in kmain at ../../main/main.c:211
+2       breakpoint     keep y   0x80014a0c in menu at ../../main/menu.c:697
+```
+
+### Question 4
+
+Before the invocation of the kernel main function, the `__start()` function handles all of the setup work, including
+directly talking to the hardware and manually setting up memory so that the kernel can find what it needs, and then
+jumps into `kmain` to kickstart the kernel.
+
+### Question 5
+
+The instruction that calls the `kmain` function is `jal kmain` in line 215 of `start.S`
+
+### Question 6
+
+```
+Breakpoint 1, kmain (arguments=0x80035c20 "") at ../../main/main.c:211
+warning: Source file is more recent than executable.
+211		boot();
+(gdb) s
+boot () at ../../main/main.c:99
+99		kprintf("\n");
+(gdb) n
+100		kprintf("OS/161 base system version %s\n", BASE_VERSION);
+(gdb) n
+101		kprintf("%s", harvard_copyright);
+(gdb) n
+102		kprintf("\n");
+(gdb) n
+104		kprintf("Erik's system version %s (%s #%d)\n",
+(gdb) n
+106		kprintf("\n");
+(gdb) n
+109		ram_bootstrap();
+(gdb) n
+110		proc_bootstrap();
+(gdb) n
+111		thread_bootstrap();
+(gdb) n
+112		hardclock_bootstrap();
+(gdb) n
+113		vfs_bootstrap();
+(gdb) n
+114		kheap_nextgeneration();
+(gdb) n
+117		kprintf("Device probe...\n");
+(gdb) n
+118		KASSERT(curthread->t_curspl > 0);
+(gdb) n
+119		mainbus_bootstrap();
+(gdb) n
+120		KASSERT(curthread->t_curspl == 0);
+(gdb) n
+122		pseudoconfig();
+(gdb) n
+123		kprintf("\n");
+(gdb) n
+124		kheap_nextgeneration();
+(gdb) n
+127		vm_bootstrap();
+(gdb) n
+128		kprintf_bootstrap();
+(gdb) n
+129		thread_start_cpus();
+(gdb) n
+132		vfs_setbootfs("emu0");
+(gdb) n
+134		kheap_nextgeneration();
+(gdb) n
+141	}
+```
+
+### Question 7
+
+```
+Breakpoint 3, thread_bootstrap () at ../../thread/thread.c:357
+357		cpuarray_init(&allcpus);
+(gdb) p *bootcpu
+Cannot access memory at address 0x80000
+```
+
+### Question 8
+
+```
+(gdb) s
+cpuarray_init (a=0x80035860 <allcpus>) at ../../thread/thread.c:67
+67	DEFARRAY(cpu, static __UNUSED inline);
+(gdb) n
+thread_bootstrap () at ../../thread/thread.c:367
+367		bootcpu = cpu_create(0);
+(gdb) n
+368		bootthread = bootcpu->c_curthread;
+(gdb) p *bootcpu
+$1 = {c_self = 0x8003af00, c_number = 0, c_hardware_number = 0, c_curthread = 0x8003bf80, c_zombies = {tl_head = {tln_prev = 0x0, tln_next = 0x8003af1c, tln_self = 0x0}, tl_tail = {tln_prev = 0x8003af10, tln_next = 0x0,
+      tln_self = 0x0}, tl_count = 0}, c_hardclocks = 0, c_spinlocks = 0, c_isidle = false, c_runqueue = {tl_head = {tln_prev = 0x0, tln_next = 0x8003af44, tln_self = 0x0}, tl_tail = {tln_prev = 0x8003af38, tln_next = 0x0,
+      tln_self = 0x0}, tl_count = 0}, c_runqueue_lock = {splk_lock = 0, splk_holder = 0x0}, c_ipi_pending = 0, c_shootdown = {{ts_placeholder = 0} <repeats 16 times>}, c_numshootdown = 0, c_ipi_lock = {splk_lock = 0,
+    splk_holder = 0x0}}
+```
+
+### Question 9
+
+```
+Breakpoint 1, kmain (arguments=0x80035c20 "") at ../../main/main.c:211
+warning: Source file is more recent than executable.
+211		boot();
+(gdb) cpuarray allcpus
+0 cpus
+```
+
+### Question 10
+
+```
+(gdb) n
+368		bootthread = bootcpu->c_curthread;
+(gdb) cpuarray allcpus
+1 cpus
+cpu 0:
+$1 = {c_self = 0x8003af00, c_number = 0, c_hardware_number = 0, c_curthread = 0x8003bf80, c_zombies = {tl_head = {tln_prev = 0x0, tln_next = 0x8003af1c, tln_self = 0x0}, tl_tail = {tln_prev = 0x8003af10, tln_next = 0x0,
+      tln_self = 0x0}, tl_count = 0}, c_hardclocks = 0, c_spinlocks = 0, c_isidle = false, c_runqueue = {tl_head = {tln_prev = 0x0, tln_next = 0x8003af44, tln_self = 0x0}, tl_tail = {tln_prev = 0x8003af38, tln_next = 0x0,
+      tln_self = 0x0}, tl_count = 0}, c_runqueue_lock = {splk_lock = 0, splk_holder = 0x0}, c_ipi_pending = 0, c_shootdown = {{ts_placeholder = 0} <repeats 16 times>}, c_numshootdown = 0, c_ipi_lock = {splk_lock = 0,
+    splk_holder = 0x0}}
+
+```

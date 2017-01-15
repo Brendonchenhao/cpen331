@@ -3,6 +3,7 @@
 ### sys161
 
 ```
+➜  root sys161 kernel
 sys161: System/161 release 2.0.3, compiled Jan  4 2017 15:55:00
 
 OS/161 base system version 1.99.08
@@ -33,6 +34,7 @@ OS/161 kernel [? for menu]:
 ### git log 
 
 ```
+➜  src git:(master) ✗ git log
 commit 9783ac196953775b444abeda62a4928e4cddab40
 Author: erik <erik@dolins.ky>
 Date:   Fri Jan 6 17:16:15 2017 -0800
@@ -61,6 +63,7 @@ Date:   Tue Jan 3 21:47:09 2017 -0800
 ### git tag
 
 ```
+➜  src git:(master) ✗ git tag
 asst0-start
 ```
 
@@ -84,8 +87,9 @@ overarching function, which loads the call number into v0 and jumps to the the s
 which generates the trap.
 
 3. `userland/lib/libc` contains executable files that the user can execute, while executable files in `common/libc` are
-shared by the user and kernel, and therefore must operate in both contexts. This separation allows us to avoid problems
-which would originate from having duplicate code bases.
+shared by the user and kernel, and therefore must operate in both contexts. Files in `common/libc` can be accessed when
+we are building the kernel. This separation also allows us to avoid problems that would originate from having
+duplicate code bases.
 
 4. `configure` configures environment-specific makefile definitions, including the operating system tree and
 compatibility flags. This would need to be re-run if the source tree was moved to a different computer, possibly running

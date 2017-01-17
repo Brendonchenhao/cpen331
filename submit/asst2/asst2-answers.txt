@@ -1,0 +1,45 @@
+# Assignment 2
+
+## Reading Exercises
+
+1. What happens to a thread when it exits (i.e., calls thread_exit())? What about when it sleeps?
+
+
+
+2. What function(s) handle(s) a context switch?
+
+
+
+3. What does it mean for a thread to be in each of the possible thread states?
+
+
+
+4. What does it mean to turn interrupts off? How is this accomplished? Why is it important to turn off interrupts in the
+thread subsystem code?
+
+
+
+5. What happens when a thread wakes up another thread? How does a sleeping thread get to run again?
+
+
+
+6. What function(s) choose(s) the next thread to run?
+
+
+
+7. How does it (do they) pick the next thread?
+
+
+
+8. What role does the hardware timer play in scheduling? What hardware independent function is called on a timer interrupt?
+
+
+
+9. Describe how wchan_sleep() and wchan_wakeone() are used to implement semaphores.
+
+
+
+10. How does the implementation of wchan ensure that a thread never misses a wakeup signal: that another thread cannot
+attempt to awaken the first thread just as it is preparing to sleep, but before it is actually placed into the sleep queue?
+
+

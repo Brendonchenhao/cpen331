@@ -7,8 +7,8 @@ emu.o: ../../dev/lamebus/emu.c ../../include/types.h \
  ../../include/array.h ../../include/uio.h ../../include/kern/iovec.h \
  ../../include/membar.h includelinks/machine/membar.h \
  ../../include/synch.h ../../include/spinlock.h \
- includelinks/machine/spinlock.h ../../dev/lamebus/emu.h \
- includelinks/platform/bus.h includelinks/machine/vm.h \
- ../../dev/lamebus/lamebus.h ../../include/cpu.h \
- ../../include/threadlist.h ../../include/vfs.h ../../include/emufs.h \
+ includelinks/machine/spinlock.h ../../include/cpu.h \
+ ../../include/threadlist.h includelinks/machine/vm.h \
+ ../../dev/lamebus/emu.h includelinks/platform/bus.h \
+ ../../dev/lamebus/lamebus.h ../../include/vfs.h ../../include/emufs.h \
  ../../include/fs.h ../../include/vnode.h autoconf.h

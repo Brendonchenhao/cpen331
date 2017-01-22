@@ -134,6 +134,11 @@ V(struct semaphore *sem) {
 //
 // Lock.
 
+/**
+ * Creates a new lock given a specified name
+ * @param name identifier to be given to the lock
+ * @return lock struct, or NULL if creation has failed
+ */
 struct lock *
 lock_create(const char *name) {
     struct lock *lock;
@@ -143,48 +148,93 @@ lock_create(const char *name) {
         return NULL;
     }
 
-    lock->lk_name = kstrdup(name);
-    if (lock->lk_name == NULL) {
+    lock->lk_name = kstrdup(name);  // give lock the specified name
+    if (lock->lk_name == NULL) {    // free space & abort if null
         kfree(lock);
         return NULL;
     }
 
-    // add stuff here as needed
+    lock->lk_wchan = wchan_create(lock->lk_name);   // create wait channel
+    if (lock->lk_wchan == NULL) {   // free space & abort if null
+        kfree(lock);
+        return NULL;
+    }
+
+    lock->lk_holder = NULL;         // no thread is holding this lock initially
+    spinlock_init(&lock->lk_lock);  // initialize internal spinlock
+    lock->lk_available = true;      // set initial lock status
 
     return lock;
 }
 
+/**
+ * Destroys the lock parameter
+ * @param lock lock to be destroyed
+ */
 void
 lock_destroy(struct lock *lock) {
     KASSERT(lock != NULL);
+    KASSERT(lock->lk_holder == NULL);   // no thread must be holding this lock when it is destroyed
 
-    // add stuff here as needed
-
-    kfree(lock->lk_name);
+    spinlock_cleanup(&lock->lk_lock);   // wchan_cleanup will assert if anyone's waiting on it
+    wchan_destroy(lock->lk_wchan);
+    kfree(lock->lk_name);               // free leftover space
     kfree(lock);
+
 }
 
+/**
+ * Acquires the specified lock. If lock is not available, thread will sleep on queue until woken
+ * @param lock lock to be acquired by the thread
+ */
 void
 lock_acquire(struct lock *lock) {
-    // Write this
+    KASSERT(CURCPU_EXISTS());   // we need to track which thread holds the lock, so this thread needs to exist
+    KASSERT(curthread->t_in_interrupt == false);    // check if we can acquire without blocking
 
-    (void) lock;  // suppress warning until code gets written
+    spinlock_acquire(&lock->lk_lock);    // use spinlock to protect the wait channel
+
+    // block until lock is available
+    while (!lock->lk_available) {
+        wchan_sleep(lock->lk_wchan, &lock->lk_lock);
+    }
+    KASSERT(lock->lk_available);        // check that lock is still available
+
+    lock->lk_available = false;         // claim lock
+    lock->lk_holder = curcpu->c_self;
+
+    spinlock_release(&lock->lk_lock);
 }
 
+/**
+ * Releases the specified lock
+ * @param lock lock to be released by the thread
+ */
 void
 lock_release(struct lock *lock) {
-    // Write this
+    KASSERT(lock != NULL);
 
-    (void) lock;  // suppress warning until code gets written
+    spinlock_acquire(&lock->lk_lock);   // use spinlock to protect the wait channel
+
+    KASSERT(!lock->lk_available);       // make sure lock is not already available
+    lock->lk_available = true;          // release lock
+    lock->lk_holder = NULL;
+
+    wchan_wakeone(lock->lk_wchan, &lock->lk_lock);  // wake thread and release spinlock
+    spinlock_release(&lock->lk_lock);
 }
 
+/**
+ * Determines whether the thread is holding the specified lock
+ * @param lock the lock in question
+ * @return Whether the thread that executes this statement is holding the lock
+ */
 bool
 lock_do_i_hold(struct lock *lock) {
-    // Write this
+    KASSERT(CURCPU_EXISTS());
 
-    (void) lock;  // suppress warning until code gets written
-
-    return true; // dummy until code gets written
+    // return true only if holder is this thread
+    return (lock->lk_holder == curcpu->c_self);
 }
 
 ////////////////////////////////////////////////////////////

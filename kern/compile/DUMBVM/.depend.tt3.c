@@ -5,4 +5,5 @@ tt3.o: ../../test/tt3.c ../../include/types.h ../../include/kern/types.h \
  ../../include/spinlock.h includelinks/machine/spinlock.h \
  ../../include/threadlist.h includelinks/machine/thread.h \
  ../../include/setjmp.h includelinks/kern/machine/setjmp.h \
- ../../include/synch.h ../../include/test.h
+ ../../include/synch.h ../../include/cpu.h includelinks/machine/vm.h \
+ ../../include/test.h

@@ -19,3 +19,6 @@ CMakeLists.txt
 # Ignore these directories
 .idea/
 
+# Unignore Makefiles
+!Makefile
+

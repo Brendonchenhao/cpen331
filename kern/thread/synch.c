@@ -156,6 +156,7 @@ lock_create(const char *name) {
 
     lock->lk_wchan = wchan_create(lock->lk_name);   // create wait channel
     if (lock->lk_wchan == NULL) {   // free space & abort if null
+        kfree(lock->lk_name);
         kfree(lock);
         return NULL;
     }
@@ -189,7 +190,7 @@ lock_destroy(struct lock *lock) {
  */
 void
 lock_acquire(struct lock *lock) {
-    KASSERT(CURCPU_EXISTS());   // we need to track which thread holds the lock, so this thread needs to exist
+    KASSERT(lock != NULL);                          // thread needs to exist
     KASSERT(curthread->t_in_interrupt == false);    // check if we can acquire without blocking
 
     spinlock_acquire(&lock->lk_lock);    // use spinlock to protect the wait channel
@@ -231,7 +232,10 @@ lock_release(struct lock *lock) {
  */
 bool
 lock_do_i_hold(struct lock *lock) {
-    KASSERT(CURCPU_EXISTS());
+
+    if (!CURCPU_EXISTS()) {     // as in spinlock_do_i_hold()
+        return true;
+    }
 
     // return true only if holder is this thread
     return (lock->lk_holder == curcpu->c_self);
@@ -241,7 +245,11 @@ lock_do_i_hold(struct lock *lock) {
 //
 // CV
 
-
+/**
+ * Creates a new condition variable given a specified name
+ * @param name name of the condition variable to be created
+ * @return pointer to the newly created cv struct; NULL if creation has failed.
+ */
 struct cv *
 cv_create(const char *name) {
     struct cv *cv;
@@ -257,38 +265,96 @@ cv_create(const char *name) {
         return NULL;
     }
 
-    // add stuff here as needed
+    cv->cv_wchan = wchan_create(cv->cv_name);
+    if (cv->cv_wchan == NULL) {
+        kfree(cv->cv_name);
+        kfree(cv);
+        return NULL;
+    }
+
+    spinlock_init(&cv->cv_lock);
 
     return cv;
 }
 
+/**
+ * Destroys the specified condition variable, and anything in it
+ * @param cv condition variable to be destroyed
+ */
 void
 cv_destroy(struct cv *cv) {
     KASSERT(cv != NULL);
 
-    // add stuff here as needed
+    spinlock_cleanup(&cv->cv_lock);
+    wchan_destroy(cv->cv_wchan);
 
     kfree(cv->cv_name);
     kfree(cv);
 }
 
+/**
+ * Release the held lock, go to sleep, and then re-acquire the lock once woken
+ * @param cv Condition Variable to wait upon
+ * @param lock lock held by thread
+ */
 void
 cv_wait(struct cv *cv, struct lock *lock) {
-    // Write this
-    (void) cv;    // suppress warning until code gets written
-    (void) lock;  // suppress warning until code gets written
+    KASSERT(cv != NULL);
+    KASSERT(lock != NULL);
+    KASSERT(lock_do_i_hold(lock));  // make sure that we're actually holding the lock
+
+    spinlock_acquire(&cv->cv_lock); // lock wait channel
+
+    lock_release(lock);                         // release lock
+    wchan_sleep(cv->cv_wchan, &cv->cv_lock);    // enqueue thread on wait channel
+
+    spinlock_release(&cv->cv_lock); // unlock wait channel
+
+    lock_acquire(lock);             // re-acquire lock
 }
 
+/**
+ * Signal for one thread waiting on a condition variable to wake up and attempt to acquire the lock
+ * @param cv Condition Variable that one or more threads is waiting on
+ * @param lock lock associated with the condition variable
+ */
 void
 cv_signal(struct cv *cv, struct lock *lock) {
-    // Write this
-    (void) cv;    // suppress warning until code gets written
-    (void) lock;  // suppress warning until code gets written
+    KASSERT(cv != NULL);
+    KASSERT(lock != NULL);
+    KASSERT(lock_do_i_hold(lock));  // make sure we're holding the lock
+
+    /*
+     * Wake one thread waiting on the wait channel; the implementation of
+     * wchan_wakeone() ensures that nothing happens if no thread is waiting.
+     *
+     * Spinlocking the wait channel ensures atomicity of the operation.
+     */
+    spinlock_acquire(&cv->cv_lock);
+    wchan_wakeone(cv->cv_wchan, &cv->cv_lock);
+    spinlock_release(&cv->cv_lock);
+
 }
 
+/**
+ * Signal for all threads waiting on a condition variable to wake up and attempt to acquire the lock
+ * @param cv Condition Variable that one or more threads is waiting on
+ * @param lock lock associated with the condition variable
+ */
 void
 cv_broadcast(struct cv *cv, struct lock *lock) {
-    // Write this
-    (void) cv;    // suppress warning until code gets written
-    (void) lock;  // suppress warning until code gets written
+    KASSERT(cv != NULL);
+    KASSERT(lock != NULL);
+    KASSERT(lock_do_i_hold(lock));  // make sure we're holding the lock
+
+    /*
+     * Wake all threads waiting on the wait channel; the implementation of
+     * wchan_wakeone() ensures that nothing happens if no thread is waiting.
+     *
+     * Spinlocking the wait channel ensures atomicity of the operation.
+     */
+    spinlock_acquire(&cv->cv_lock);
+    wchan_wakeall(cv->cv_wchan, &cv->cv_lock);
+    spinlock_release(&cv->cv_lock);
+
 }

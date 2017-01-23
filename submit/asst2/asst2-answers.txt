@@ -19,8 +19,8 @@ sleeps, it is added to a wait channel. The thread will remain sleeping until eit
     * S_SLEEP: thread is waiting on a resource, sleeping in a wait channel
     * S_ZOMBIE: thread has exited, but has not yet been cleaned up
 
-4. **What does it mean to turn interrupts off? How is this accomplished? Why is it important to turn off interrupts in the
-thread subsystem code?**
+4. **What does it mean to turn interrupts off? How is this accomplished? Why is it important to turn off interrupts in
+the thread subsystem code?**
 When interrupts are 'turned off' on a particular processor, interrupts are ignored so that the running process can
 continue without delay. Any new interrupts received will be ignored until interrupts are turned back on. This is
 accomplished by a call to `splhigh()` (lines 569 and 796 in `kern/thread/thread.c`). This function is included in-line
@@ -34,12 +34,12 @@ are cleaned up, are killed prematurely, or not run at all. It would cause undefi
 chaos would ensue.
 
 5. **What happens when a thread wakes up another thread? How does a sleeping thread get to run again?**
-When a thread wakes up another thread, the run queue of the cpu we wish the thread to run on is locked, the thread is
-placed on the run queue, and then the run queue is unlocked, as implemented in `thread_make_runnable()` on line 450 of
-`kern/thread/thread.c`. Sleeping threads can be woken when its wait channel is passed into `wchan_wakeone()` (line 1045)
-and it is lucky enough to be the first on the channel (`threadlist_remhead()`, implemented on line 183 in
-`kern/thread/threadlist.c`) or `wchan_wakeall()` (line 1074) is called. In either case, control is turned over to
-'thread_make_runnable()''.
+When a thread wakes up another thread, the runqueue of the cpu we wish the thread to run on is locked (so that nothing
+else can place anything on the runqueue), the thread is placed on the run queue, and then the run queue is unlocked,
+as implemented in `thread_make_runnable()` on line 450 of `kern/thread/thread.c`. Sleeping threads can be woken when its
+wait channel is passed into `wchan_wakeone()` (line 1045) and it is lucky enough to be the first on the channel
+(`threadlist_remhead()`, implemented on line 183 in `kern/thread/threadlist.c`) or `wchan_wakeall()` (line 1074) is
+called. In either case, control is turned over to 'thread_make_runnable()''.
 
 6. **What function(s) choose(s) the next thread to run?**
 `thread_make_runnable()` on line 450 of `kern_thread_thread.c` chooses the next thread to run.
@@ -48,7 +48,8 @@ and it is lucky enough to be the first on the channel (`threadlist_remhead()`, i
 7. **How does it (do they) pick the next thread?**
 `thread_make_runnable()` chooses the next thread by calling `threadlist_remhead()` (implemented on line 193 of
 `kern/thread/threadlist.c`). This function removes and returns the first thread in the list. As threads are added on the
-runqueue using `threadlist_addtail()`, this implements a FIFO queue.
+runqueue using `threadlist_addtail()`, this implements a FIFO queue, so that threads are chosen in the same order that
+they enter the run queue.
 
 8. **What role does the hardware timer play in scheduling? What hardware independent function is called on a timer interrupt?**
 The hardware timer determines how often the scheduler runs. In our case, the scheduler runs every 4 ticks of the
@@ -65,5 +66,6 @@ attempt to awaken the first thread just as it is preparing to sleep, but before 
 The wait channel thread is implemented as a FIFO queue, similar to the runqueue (removing from head and adding to tail).
 This ensures that this particular instance does not occur when there is more than one thread in the wait channel.
 For the case that we have a new thread coming onto an empty wait channel, the implementation of `wchan_sleep()` ensures
-that we never sleep in an interrupt handler, and that we hold on to the lock for the duration of the operation (and not
-any other lock). This ensures that the thread cannot be woken until it is actually on the sleep queue.
+that we never sleep in an interrupt handler, and uses a spinlock to ensure that no other thread can use the wait channel
+while the thread is put on the wait channel. This ensures that the thread cannot be woken until it is actually on the
+sleep queue.

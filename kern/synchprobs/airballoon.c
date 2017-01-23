@@ -25,89 +25,85 @@ static int ropes_left = NROPES;
 
 static
 void
-dandelion(void *p, unsigned long arg)
-{
-	(void)p;
-	(void)arg;
-	
-	kprintf("Dandelion thread starting\n");
+dandelion(void *p, unsigned long arg) {
+    (void) p;
+    (void) arg;
 
-	// Implement this function
+    kprintf("Dandelion thread starting\n");
+
+    // Implement this function
+	
 }
 
 static
 void
-marigold(void *p, unsigned long arg)
-{
-	(void)p;
-	(void)arg;
-	
-	kprintf("Marigold thread starting\n");
+marigold(void *p, unsigned long arg) {
+    (void) p;
+    (void) arg;
 
-	// Implement this function
+    kprintf("Marigold thread starting\n");
+
+    // Implement this function
 }
 
 static
 void
-flowerkiller(void *p, unsigned long arg)
-{
-	(void)p;
-	(void)arg;
-	
-	kprintf("Lord FlowerKiller thread starting\n");
+flowerkiller(void *p, unsigned long arg) {
+    (void) p;
+    (void) arg;
 
-	// Implement this function
+    kprintf("Lord FlowerKiller thread starting\n");
+
+    // Implement this function
 }
 
 static
 void
-balloon(void *p, unsigned long arg)
-{
-	(void)p;
-	(void)arg;
-	
-	kprintf("Balloon thread starting\n");
+balloon(void *p, unsigned long arg) {
+    (void) p;
+    (void) arg;
 
-	// Implement this function
+    kprintf("Balloon thread starting\n");
+
+    // Implement this function
 }
 
 
 // Change this function as necessary
 int
-airballoon(int nargs, char **args)
-{
+airballoon(int nargs, char **args) {
 
-	int err = 0;
+    int err = 0;
 
-	(void)nargs;
-	(void)args;
-	(void)ropes_left;
-	
-	err = thread_fork("Marigold Thread",
-			  NULL, marigold, NULL, 0);
-	if(err)
-		goto panic;
-	
-	err = thread_fork("Dandelion Thread",
-			  NULL, dandelion, NULL, 0);
-	if(err)
-		goto panic;
-	
-	err = thread_fork("Lord FlowerKiller Thread",
-			  NULL, flowerkiller, NULL, 0);
-	if(err)
-		goto panic;
+    (void) nargs;
+    (void) args;
+    (void) ropes_left;
 
-	err = thread_fork("Air Balloon",
-			  NULL, balloon, NULL, 0);
-	if(err)
-		goto panic;
+    err = thread_fork("Marigold Thread",
+                      NULL, marigold, NULL, 0);
+    if (err)
+        goto panic;
 
-	goto done;
-panic:
-	panic("airballoon: thread_fork failed: %s)\n",
-	      strerror(err));
-	
-done:
-	return 0;
+    err = thread_fork("Dandelion Thread",
+                      NULL, dandelion, NULL, 0);
+    if (err)
+        goto panic;
+
+    err = thread_fork("Lord FlowerKiller Thread",
+                      NULL, flowerkiller, NULL, 0);
+    if (err)
+        goto panic;
+
+    err = thread_fork("Air Balloon",
+                      NULL, balloon, NULL, 0);
+    if (err)
+        goto panic;
+
+    goto done;
+    panic:
+    panic("airballoon: thread_fork failed: %s)\n",
+          strerror(err));
+
+    done:
+    return 0;
 }

@@ -44,9 +44,9 @@ struct lock *counter_lock;
  * sk_next parameter points to null and sk_hook_idx is the value of INVALID_IDX (-1). When a rope is attached to a
  * stake, it is attached to the front of the linked list at that index.
  *
- * The main running thread (airballoon) does most of the maintenance work, setting up the data structures,
+ * The main running thread (airballoon) does most of the maintenance work, setting up the data structures (set_up()),
  * and starting each of the worker threads. It then waits on the main_cv condition variable until signalled by the
- * balloon thread. When it resumes, it cleans up the space we have allocated, and exits.
+ * balloon thread. When it resumes, it cleans up the space we have allocated (tear_down()), and exits.
  *
  * The balloon thread simply waits for the other worker threads to complete. As we are waiting on Dandelion to
  * escape in the balloon, the balloon thread waits to be signalled by Dandelion before printing its victory message
@@ -60,7 +60,9 @@ struct lock *counter_lock;
  *
  * In this implementation, worker threads first lock the rope structure, then the corresponding stake structure(s), then
  * the counter, with a nested release structure (released in reverse order). This order is maintained chiefly to avoid
- * deadlock.
+ * deadlock. The worker threads operate with a fairly cowardly disposition. If they discover something that is not to
+ * their locking (e.g. the rope is detached, or the mapping is not what it was when they originally picked an index, or
+ * the stake is empty, etc.), they release all the locks they're holding, and enter another iteration.
  *
  */
 
@@ -334,7 +336,7 @@ dandelion(void *p, unsigned long arg) {
 
     kprintf("Dandelion thread done\n");
     cv_signal(work_cv, work_lk);    // We're done! Signal to balloon that we've severed all ropes,
-    lock_release(work_lk);          // and release the working thread lock
+    lock_release(work_lk);          // and release the working thread lock.
 }
 
 /**

@@ -18,6 +18,8 @@ CMakeLists.txt
 
 # Ignore these directories
 .idea/
+build/
+cmake-build-debug/
 
 # Unignore Makefiles
 !Makefile
